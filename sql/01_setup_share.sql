@@ -1,6 +1,6 @@
 -- Run once, as ACCOUNTADMIN or a role with CREATE DATABASE/WAREHOUSE privileges.
 -- Prerequisite: you've already added the "Snowflake Public Data (Free)" listing from the
--- Marketplace as a database named PUBLIC_DATA (Data Products -> Marketplace -> Get). See SETUP.md.
+-- Marketplace as a database named SNOWFLAKE_PUBLIC_DATA_FREE (Data Products -> Marketplace -> Get). See SETUP.md.
 
 CREATE WAREHOUSE IF NOT EXISTS aid_desert_wh
     WAREHOUSE_SIZE = 'XSMALL'

@@ -18,7 +18,7 @@ query box, a choropleth map.
 1. In Snowsight, go to **Data Products → Marketplace**.
 2. Search for **"Snowflake Public Data (Free)"** (listing by Snowflake Public Data Products).
 3. Click **Get**, and give the resulting database a name — this guide assumes you name it
-   `PUBLIC_DATA` (adjust the scripts in `sql/` if you pick something else).
+   `SNOWFLAKE_PUBLIC_DATA_FREE` (adjust the scripts in `sql/` if you pick something else).
 4. No warehouse credits are consumed by adding the share itself — you only pay compute when you
    query it.
 

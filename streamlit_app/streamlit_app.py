@@ -27,7 +27,7 @@ COUNTY_BOUNDARY_QUERY = """
     SELECT
         county_fips,
         ST_ASGEOJSON(county_boundary) AS geojson
-    FROM PUBLIC_DATA.GEOGRAPHY.COUNTY_INDEX
+    FROM SNOWFLAKE_PUBLIC_DATA_FREE.GEOGRAPHY.COUNTY_INDEX
     WHERE state = 'FL'
 """
 
