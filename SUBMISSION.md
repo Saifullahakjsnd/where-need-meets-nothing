@@ -33,7 +33,7 @@ density.
 
 ## Demo
 
-- **Live map:** `PLACEHOLDER_VERCEL_URL`
+- **Live map:** https://aid-desert-finder.vercel.app
 - **Source:** `PLACEHOLDER_REPO_URL`
 
 Hover any county for its full numbers, or recolour the map by need score, doctor density, poverty,
