@@ -80,20 +80,17 @@ tolerance takes 4.5MB of boundaries down to 190KB with no visible difference at 
 ### Asking it in English
 
 **Cortex Analyst** handles the plain-English layer over a deliberately tiny semantic model — one
-view, six measures. Asked *"Which counties had disasters but fewest doctors?"* it chose
-`providers_per_10k` over the raw headcount **on its own**, because the semantic model's description
-of that field says it's the right one for per-capita questions:
+view, six measures. The interesting part is what it does unprompted:
 
-```sql
-SELECT county_name, disaster_count, providers_per_10k, poverty_rate_pct, aid_desert_score
-FROM aid_desert
-WHERE disaster_count > 0
-ORDER BY providers_per_10k ASC
-LIMIT 10
-```
+<!-- UPLOAD media/cortex.png HERE -->
 
-It generalises past its verified queries too — *"more than 1 in 5 people in poverty"* became
-`poverty_rate_pct > 20` unprompted.
+Asked *"Which counties had disasters but fewest doctors?"*, it chose `providers_per_10k` over the
+raw headcount **on its own** — because the semantic model's description of that field says it's the
+right one for per-capita questions. Nothing in the question mentioned per-capita anything.
+
+It generalises past its verified queries too: *"more than 1 in 5 people in poverty"* became
+`poverty_rate_pct > 20`, and *"show me counties where fewer than 60 doctors per 10k"* composed
+correctly with it. The semantic model is 80 lines of YAML.
 
 ### Three traps that produced convincing wrong answers
 
