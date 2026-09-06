@@ -12,7 +12,13 @@ reproduce it in a fresh account, and how to keep working on it.
 | Semantic model | `@AID_DESERT_FINDER.ANALYTICS.SEMANTIC_MODELS/aid_desert.yaml` |
 | Streamlit app | `AID_DESERT_FINDER.ANALYTICS.AID_DESERT_FINDER` |
 
-App URL: https://app.snowflake.com/us-east-1/puc38478/#/streamlit-apps/AID_DESERT_FINDER.ANALYTICS.AID_DESERT_FINDER
+App URL: https://app.snowflake.com/us-east-1/ipc20383/#/streamlit-apps/AID_DESERT_FINDER.ANALYTICS.AID_DESERT_FINDER
+
+> **Note the account identifier in that URL.** Snowsight routes by account **locator**
+> (`IPC20383`), but `snow streamlit deploy` prints a URL built from the account **name**
+> (`PUC38478`) — that URL does not resolve and fails with "Unable to connect to the Snowflake
+> backend", which looks like a firewall problem but isn't. Get the locator with
+> `SELECT CURRENT_ACCOUNT();` and ignore the URL the CLI prints.
 
 ## 1. Snowflake account
 
