@@ -90,7 +90,7 @@ right one for per-capita questions. Nothing in the question mentioned per-capita
 
 It generalises past its verified queries too: *"more than 1 in 5 people in poverty"* became
 `poverty_rate_pct > 20`, and *"show me counties where fewer than 60 doctors per 10k"* composed
-correctly with it. The semantic model is 80 lines of YAML.
+correctly with it. The whole semantic model is 108 lines of YAML.
 
 ### Three traps that produced convincing wrong answers
 
