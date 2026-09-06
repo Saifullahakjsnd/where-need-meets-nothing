@@ -1,0 +1,70 @@
+# Cortex Analyst semantic model for the Aid Desert Finder (Florida MVP).
+# Upload this file to a Snowflake stage (see SETUP.md step 5) and point Cortex Analyst at it.
+# Kept intentionally tiny: one table, per the README's "Key Challenge & Fix".
+name: aid_desert_finder
+description: >
+  County-level aid-desert analysis for Florida, combining FEMA disaster history,
+  Census/ACS poverty rates, and NPPES healthcare-provider density.
+tables:
+  - name: aid_desert
+    base_table:
+      database: aid_desert_finder
+      schema: analytics
+      table: aid_desert
+    description: >
+      One row per Florida county, with disaster count since 2015, poverty rate, doctor
+      (individual healthcare provider) count, and a composite aid-desert need score.
+    dimensions:
+      - name: county_fips
+        expr: county_fips
+        data_type: text
+        description: 5-digit Census FIPS code identifying the county.
+        unique: true
+      - name: county_name
+        expr: county_name
+        data_type: text
+        description: Human-readable county name.
+        synonyms:
+          - county
+          - parish
+    measures:
+      - name: disaster_count
+        expr: disaster_count
+        data_type: number
+        description: Number of distinct FEMA-declared disasters affecting this county since 2015.
+        synonyms:
+          - disasters
+          - number of disasters
+      - name: poverty_rate_pct
+        expr: poverty_rate_pct
+        data_type: number
+        description: Percent of the county population below the poverty line (latest ACS year).
+        synonyms:
+          - poverty rate
+          - poverty percentage
+      - name: provider_count
+        expr: provider_count
+        data_type: number
+        description: Count of individual healthcare providers (doctors) with a practice location in this county, per NPPES.
+        synonyms:
+          - doctors
+          - number of doctors
+          - healthcare providers
+      - name: aid_desert_score
+        expr: aid_desert_score
+        data_type: number
+        description: >
+          Composite need score: higher when a county has more disasters, higher poverty, and
+          fewer doctors. Highest scores are the most under-resourced high-need counties.
+        synonyms:
+          - need score
+          - aid desert score
+verified_queries:
+  - name: worst_aid_deserts
+    question: Which counties had disasters but the fewest doctors?
+    sql: >
+      SELECT county_name, disaster_count, provider_count, poverty_rate_pct, aid_desert_score
+      FROM aid_desert
+      WHERE disaster_count > 0
+      ORDER BY aid_desert_score DESC
+      LIMIT 10

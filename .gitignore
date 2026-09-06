@@ -1,0 +1,7 @@
+.snowflake/
+*.pyc
+__pycache__/
+.env
+.venv/
+venv/
+.DS_Store
