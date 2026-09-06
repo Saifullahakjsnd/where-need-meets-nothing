@@ -34,7 +34,7 @@ density.
 ## Demo
 
 - **Live map:** https://aid-desert-finder.vercel.app
-- **Source:** https://github.com/hassan-2050/where-need-meets-nothing
+- **Source:** https://github.com/Saifullahakjsnd/where-need-meets-nothing
 
 Hover any county for its full numbers, or recolour the map by need score, doctor density, poverty,
 or disaster count.
