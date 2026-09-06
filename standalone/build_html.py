@@ -7,9 +7,10 @@ SCRATCH = pathlib.Path(
     r"\c--Users-ncai-Desktop-Weekend-challanges-WhereNeedMeetsNothing"
     r"\71a68099-9b7d-4442-a9fd-265506df551f\scratchpad"
 )
+# index.html so the folder deploys to any static host (Vercel, Pages) as-is
 OUT = pathlib.Path(
     r"c:\Users\ncai\Desktop\Weekend challanges\WhereNeedMeetsNothing"
-    r"\standalone\aid_desert.html"
+    r"\standalone\index.html"
 )
 OUT.parent.mkdir(parents=True, exist_ok=True)
 
