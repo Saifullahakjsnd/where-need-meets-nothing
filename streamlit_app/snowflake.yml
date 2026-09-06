@@ -1,0 +1,15 @@
+definition_version: 2
+
+entities:
+  aid_desert_finder:
+    type: streamlit
+    identifier:
+      name: aid_desert_finder
+      schema: analytics
+      database: aid_desert_finder
+    stage: streamlit_stage
+    query_warehouse: aid_desert_wh
+    main_file: streamlit_app.py
+    artifacts:
+      - streamlit_app.py
+      - environment.yml

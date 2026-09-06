@@ -1,70 +1,108 @@
 # Cortex Analyst semantic model for the Aid Desert Finder (Florida MVP).
-# Upload this file to a Snowflake stage (see SETUP.md step 5) and point Cortex Analyst at it.
-# Kept intentionally tiny: one table, per the README's "Key Challenge & Fix".
+# Upload to the stage, then point Cortex Analyst at it (see SETUP.md step 5).
+# Kept deliberately tiny -- one table -- per the README's "Key Challenge & Fix".
 name: aid_desert_finder
 description: >
-  County-level aid-desert analysis for Florida, combining FEMA disaster history,
+  County-level aid-desert analysis for Florida, combining FEMA disaster declarations,
   Census/ACS poverty rates, and NPPES healthcare-provider density.
+
 tables:
   - name: aid_desert
     base_table:
-      database: aid_desert_finder
-      schema: analytics
-      table: aid_desert
+      database: AID_DESERT_FINDER
+      schema: ANALYTICS
+      table: AID_DESERT
     description: >
-      One row per Florida county, with disaster count since 2015, poverty rate, doctor
-      (individual healthcare provider) count, and a composite aid-desert need score.
+      One row per Florida county (67 total). Disaster counts cover the last 10 years of FEMA
+      declarations; poverty and population are the latest ACS 5-year estimates; provider counts
+      are active individual NPPES practitioners at their primary practice location.
+
     dimensions:
-      - name: county_fips
-        expr: county_fips
-        data_type: text
-        description: 5-digit Census FIPS code identifying the county.
-        unique: true
       - name: county_name
-        expr: county_name
+        expr: COUNTY_NAME
         data_type: text
-        description: Human-readable county name.
-        synonyms:
-          - county
-          - parish
-    measures:
+        description: County name, e.g. "Dixie County".
+        synonyms: [county, area, region]
+        sample_values: [Dixie County, Miami-Dade County, Putnam County]
+
+      - name: county_geo_id
+        expr: COUNTY_GEO_ID
+        data_type: text
+        description: Data Commons geo identifier for the county, e.g. "geoId/12001".
+        unique: true
+
+    facts:
       - name: disaster_count
-        expr: disaster_count
+        expr: DISASTER_COUNT
         data_type: number
-        description: Number of distinct FEMA-declared disasters affecting this county since 2015.
-        synonyms:
-          - disasters
-          - number of disasters
+        description: Distinct FEMA-declared disasters affecting the county in the last 10 years.
+        synonyms: [disasters, number of disasters, disaster declarations, hurricanes, storms]
+
       - name: poverty_rate_pct
-        expr: poverty_rate_pct
+        expr: POVERTY_RATE_PCT
         data_type: number
-        description: Percent of the county population below the poverty line (latest ACS year).
-        synonyms:
-          - poverty rate
-          - poverty percentage
+        description: Percent of the population living below the federal poverty line (ACS 5-year).
+        synonyms: [poverty rate, poverty, percent in poverty, poor]
+
       - name: provider_count
-        expr: provider_count
+        expr: PROVIDER_COUNT
         data_type: number
-        description: Count of individual healthcare providers (doctors) with a practice location in this county, per NPPES.
-        synonyms:
-          - doctors
-          - number of doctors
-          - healthcare providers
-      - name: aid_desert_score
-        expr: aid_desert_score
+        description: Active individual healthcare practitioners whose primary practice is in the county.
+        synonyms: [doctors, physicians, providers, practitioners, healthcare workers]
+
+      - name: providers_per_10k
+        expr: PROVIDERS_PER_10K
         data_type: number
         description: >
-          Composite need score: higher when a county has more disasters, higher poverty, and
-          fewer doctors. Highest scores are the most under-resourced high-need counties.
-        synonyms:
-          - need score
-          - aid desert score
+          Doctors per 10,000 residents -- the healthcare access measure. Low values mean thin
+          coverage. This is the right field for questions about "fewest doctors" relative to
+          population, whereas provider_count is a raw headcount that favors large counties.
+        synonyms: [doctor density, provider density, doctors per capita, access to care]
+
+      - name: population
+        expr: POPULATION
+        data_type: number
+        description: Total county population (ACS 5-year estimate).
+        synonyms: [residents, people, how many people]
+
+      - name: aid_desert_score
+        expr: AID_DESERT_SCORE
+        data_type: number
+        description: >
+          Composite need score from 0 to 100. Built from percentile ranks across Florida counties:
+          35% disaster frequency, 35% poverty rate, 30% scarcity of doctors per capita. Higher
+          means a more severe aid desert -- high need meeting few resources.
+        synonyms: [need score, aid desert score, severity, worst counties, most underserved]
+
 verified_queries:
-  - name: worst_aid_deserts
+  - name: disasters_but_fewest_doctors
     question: Which counties had disasters but the fewest doctors?
+    verified_at: 1757116800
+    verified_by: Aid Desert Finder
     sql: >
-      SELECT county_name, disaster_count, provider_count, poverty_rate_pct, aid_desert_score
+      SELECT county_name, disaster_count, providers_per_10k, poverty_rate_pct, aid_desert_score
       FROM aid_desert
       WHERE disaster_count > 0
+      ORDER BY providers_per_10k ASC
+      LIMIT 10
+
+  - name: worst_aid_deserts
+    question: What are the worst aid deserts in Florida?
+    verified_at: 1757116800
+    verified_by: Aid Desert Finder
+    sql: >
+      SELECT county_name, disaster_count, poverty_rate_pct, providers_per_10k, aid_desert_score
+      FROM aid_desert
       ORDER BY aid_desert_score DESC
+      LIMIT 10
+
+  - name: high_poverty_high_disaster
+    question: Which high poverty counties get hit by disasters most often?
+    verified_at: 1757116800
+    verified_by: Aid Desert Finder
+    sql: >
+      SELECT county_name, poverty_rate_pct, disaster_count, providers_per_10k
+      FROM aid_desert
+      WHERE poverty_rate_pct > 18
+      ORDER BY disaster_count DESC
       LIMIT 10
