@@ -1,71 +1,97 @@
 # Setup Guide
 
-Target for the weekend MVP: **Florida**, one state, three joined datasets, a natural-language
-query box, a choropleth map.
+Weekend MVP target: **Florida**, three joined datasets, a natural-language query box, a
+choropleth map. All of this is already built and deployed — this document covers how to
+reproduce it in a fresh account, and how to keep working on it.
 
-## 1. Create a Snowflake account
+## Current state
 
-1. Go to https://signup.snowflake.com/ and create a free trial account (30 days, $400 credit).
-   Pick any cloud/region close to you — it doesn't matter for this project.
-2. Log in to Snowsight (the web UI) once the account is provisioned.
-3. Cortex Analyst (used for the natural-language query box) requires your account to be in a
-   region where Cortex is supported (most commercial AWS/Azure US regions qualify). If Cortex
-   Analyst isn't available, pick a supported region when creating the trial — see
-   https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-analyst for the current list.
+| Piece | Where it lives |
+|---|---|
+| Joined county view | `AID_DESERT_FINDER.ANALYTICS.AID_DESERT` (67 Florida counties) |
+| Semantic model | `@AID_DESERT_FINDER.ANALYTICS.SEMANTIC_MODELS/aid_desert.yaml` |
+| Streamlit app | `AID_DESERT_FINDER.ANALYTICS.AID_DESERT_FINDER` |
+
+App URL: https://app.snowflake.com/us-east-1/puc38478/#/streamlit-apps/AID_DESERT_FINDER.ANALYTICS.AID_DESERT_FINDER
+
+## 1. Snowflake account
+
+1. https://signup.snowflake.com/ — free trial, 30 days, $400 credit. Enterprise edition.
+2. Any commercial AWS/Azure region works. Accounts created after March 2026 default to
+   `ANY_REGION` cross-region inference, so Cortex Analyst works regardless of region.
 
 ## 2. Add the free public data share
 
-1. In Snowsight, go to **Data Products → Marketplace**.
-2. Search for **"Snowflake Public Data (Free)"** (listing by Snowflake Public Data Products).
-3. Click **Get**, and give the resulting database a name — this guide assumes you name it
-   `SNOWFLAKE_PUBLIC_DATA_FREE` (adjust the scripts in `sql/` if you pick something else).
-4. No warehouse credits are consumed by adding the share itself — you only pay compute when you
-   query it.
+**Data Products → Marketplace → "Snowflake Public Data (Free)" → Get.**
 
-This single share includes FEMA disaster data, Census Bureau (incl. ACS) data, and NPPES
-healthcare-provider data — the three datasets this project joins. No ETL, no pipelines.
+Name the database `SNOWFLAKE_PUBLIC_DATA_FREE` (the default). All three datasets this project
+joins live in that one share — FEMA, Census/ACS, and NPPES — so there is no ETL, no pipeline,
+and no external data of any kind, including the map geometry.
 
-## 3. Discover the real schema
+## 3. Build it
 
-Documentation table/column names drift and the exact schema can vary by account. Before writing
-any real queries, run [sql/02_explore_schema.sql](sql/02_explore_schema.sql) in Snowsight. It
-runs `SHOW SCHEMAS` / `SHOW TABLES` / `DESCRIBE TABLE` against the share so you can confirm the
-actual object names, then fill in the `TODO` placeholders in
-[sql/03_build_aid_desert_view.sql](sql/03_build_aid_desert_view.sql).
+```sh
+snow sql -c <your-connection> -f sql/01_setup_share.sql
+snow sql -c <your-connection> -f sql/03_build_aid_desert_view.sql
+snow stage copy semantic_model/aid_desert.yaml @AID_DESERT_FINDER.ANALYTICS.SEMANTIC_MODELS \
+    -c <your-connection> --overwrite
+cd streamlit_app && snow streamlit deploy -c <your-connection> --replace
+```
 
-## 4. Build the joined view
+`sql/02_explore_schema.sql` is not part of the build — it is the schema-discovery scratchpad,
+kept because it documents what the share actually contains and how the pieces connect.
 
-Run [sql/01_setup_share.sql](sql/01_setup_share.sql) to create a working database/schema/warehouse
-for this project, then [sql/03_build_aid_desert_view.sql](sql/03_build_aid_desert_view.sql) to
-build the Florida county-level `aid_desert` view joining FEMA + Census + NPPES.
+## 4. Connecting the CLI
 
-## 5. Create the Cortex Analyst semantic model
+This project was built through key-pair auth, because `externalbrowser` fails on a trial
+account with no SAML IdP configured (error 390190).
 
-1. Upload [semantic_model/aid_desert.yaml](semantic_model/aid_desert.yaml) to a Snowflake stage
-   (a `PUT` command or drag-and-drop in Snowsight's stage browser both work).
-2. In Snowsight, go to **AI & ML → Cortex Analyst**, point it at the staged YAML file.
-3. Test it with a question like *"Which counties had disasters but the fewest doctors?"*
+```sh
+pip install snowflake-cli
+snow connection add --connection-name aid_desert --account <ORG-ACCOUNT> --user <USER> \
+    --authenticator SNOWFLAKE_JWT --role ACCOUNTADMIN --warehouse COMPUTE_WH
+# then register the public half:
+#   ALTER USER <USER> SET RSA_PUBLIC_KEY='<base64 body, no PEM header/footer lines>';
+snow connection test -c aid_desert
+```
 
-## 6. Deploy the Streamlit app
+Two gotchas that cost time here: `config.toml` must be written **without a UTF-8 BOM** (Windows
+PowerShell's `Set-Content -Encoding utf8` adds one, and the TOML parser rejects it), and the
+`RSA_PUBLIC_KEY` value is the base64 body only, with the `-----BEGIN/END-----` lines stripped.
 
-1. In Snowsight, go to **Projects → Streamlit → + Streamlit App**.
-2. Name it (e.g. `aid_desert_finder`), pick your warehouse.
-3. Replace the generated `streamlit_app.py` with
-   [streamlit_app/streamlit_app.py](streamlit_app/streamlit_app.py), and add the packages listed
-   in [streamlit_app/environment.yml](streamlit_app/environment.yml) via the app's package picker
-   (`pydeck` and `snowflake-ml-python` are not preinstalled).
-4. Run the app. Ask it: *"Which counties had disasters but fewest doctors?"* and confirm the map
-   and table populate.
+To revoke the key: `ALTER USER <USER> UNSET RSA_PUBLIC_KEY;`
 
-## Notes on data-source specifics
+## How the data actually connects
 
-- **FEMA**: `fema_disaster_declaration_index` (one row per declared disaster) joins to
-  `fema_disaster_declaration_areas_index` (one row per county/area hit by a disaster) — a single
-  disaster can span many counties, so aggregate at the county level before joining further.
-- **Census/ACS**: values live in a long/timeseries table (one row per geography × variable ×
-  year) rather than a wide table — you'll need to pivot or filter to the specific poverty-rate
-  variable ID for Florida counties. `sql/02_explore_schema.sql` includes a query to find that
-  variable ID.
-- **NPPES**: provider records carry practice-location ZIP code, not county FIPS directly. You'll
-  need a ZIP→county crosswalk to roll providers up to the county level Census and FEMA use — the
-  free share includes a geography/ZIP crosswalk table; `sql/02_explore_schema.sql` checks for it.
+Everything in the share sits in a single schema, `SNOWFLAKE_PUBLIC_DATA_FREE.PUBLIC_DATA_FREE`,
+and every object is a view. Views suffixed `_PIT` are point-in-time variants — use the plain ones.
+
+The three datasets join through a shared **`GEO_ID` spine** (Data Commons style — Florida is
+`geoId/12`, Alachua County is `geoId/12001`), not through FIPS codes or ZIP crosswalks:
+
+- **FEMA** — `FEMA_DISASTER_DECLARATION_AREAS_INDEX` carries `COUNTY_GEO_ID` directly, joined to
+  `FEMA_DISASTER_DECLARATION_INDEX` on `DISASTER_ID` for declaration dates.
+- **Census/ACS** — `AMERICAN_COMMUNITY_SURVEY_TIMESERIES` is long format (`GEO_ID`, `VARIABLE`,
+  `DATE`, `VALUE`). Poverty is `B17001_002E_5YR / B17001_001E_5YR`; population is
+  `B01003_001E_5YR`. Use 5-year estimates — 1-year only covers counties above ~65k population,
+  which drops most of rural Florida.
+- **NPPES** — has **no county geo id**, only `GEO_ID_ZIP` and `GEO_ID_CITY`, so providers roll up
+  through `GEOGRAPHY_HIERARCHY`.
+- **Map geometry** — `GEOGRAPHY_CHARACTERISTICS` holds `coordinates_geojson` rows: real county
+  polygons, no external GeoJSON needed.
+
+## Three traps in this data
+
+These each produced plausible-looking but wrong numbers before being caught:
+
+1. **`ADDRESS_TYPE` has three values** — `Mailing`, `Primary Practice`, `Secondary Practice`.
+   Counting all of them credits a provider to both their mailing county and their practice
+   county. Filter to `Primary Practice`.
+2. **Two of Florida's 67 counties have no ZIP children** in the hierarchy (Union among them), so
+   a ZIP-only rollup can never assign them a provider — they report 0 doctors and rank as
+   perfect aid deserts. All 67 do have city children, hence the city fallback.
+3. **A view cannot be built over `TEMPORARY` tables** — it compiles fine and then breaks as soon
+   as the session ends. The view is one CTE chain for this reason.
+
+Sanity check after any change: county count should be 67 and `SUM(population)` should land near
+22.4M against Florida's actual ~22.6M.
