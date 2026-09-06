@@ -39,9 +39,17 @@ density.
 Hover any county for its full numbers, or recolour the map by need score, doctor density, poverty,
 or disaster count.
 
-![Aid desert map of Florida](PLACEHOLDER_SCREENSHOT)
+<!-- upload media/hero.png here -->
+![Aid desert map of Florida, with the panhandle and rural interior in dark blue](media/hero.png)
 
 The panhandle and the rural interior light up. The coasts and the university towns do not.
+
+<!-- upload media/metric-toggle.gif here -->
+![Recolouring the map by need score, doctor density, poverty and disaster count](media/metric-toggle.gif)
+
+Same 67 counties, four different questions. Doctor density is binned by quantile rather than
+equal interval — Alachua's 351 doctors per 10k against a statewide median of 118 would otherwise
+flatten every rural county into a single shade.
 
 ## How I Used Snowflake
 

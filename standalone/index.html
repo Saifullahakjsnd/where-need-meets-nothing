@@ -287,13 +287,25 @@ let metric = METRICS[0];
 const STEPS = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7'];
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
-/* colour: 7 bins over the metric's range; dir=-1 means low value reads as severe */
+/* Colour by QUANTILE, not equal interval. Doctor density is heavily right-skewed --
+   Alachua has 351 per 10k against a median of 118 -- so equal-interval bins would put
+   almost every county in one or two shades and hide the whole distribution. Quantile
+   bins give each of the 7 steps roughly a seventh of the counties.
+   dir = -1 means a LOW value is the severe end (few doctors = dark). */
+const rankCache = new Map();
+function ranksFor(m){
+  if (!rankCache.has(m.id)){
+    const order = [...C].sort((a,b) =>
+      m.dir === -1 ? m.get(b) - m.get(a) : m.get(a) - m.get(b));
+    const r = new Map();
+    order.forEach((c,i) => r.set(c.id, i));
+    rankCache.set(m.id, r);
+  }
+  return rankCache.get(m.id);
+}
 function binOf(d){
-  const vals = C.map(metric.get);
-  const min = Math.min(...vals), max = Math.max(...vals);
-  let t = (metric.get(d) - min) / (max - min || 1);
-  if (metric.dir === -1) t = 1 - t;
-  return Math.min(6, Math.floor(t * 7));
+  const rank = ranksFor(metric).get(d.id);
+  return Math.min(6, Math.floor(rank / C.length * 7));
 }
 const colorOf = d => css(STEPS[binOf(d)]);
 
