@@ -44,12 +44,13 @@ or disaster count.
 
 The panhandle and the rural interior light up. The coasts and the university towns do not.
 
-<!-- upload media/metric-toggle.gif here -->
-![Recolouring the map by need score, doctor density, poverty and disaster count](media/metric-toggle.gif)
+<!-- upload media/demo.gif here -->
+![Hovering counties to reveal their numbers, then recolouring the map by doctor density, poverty and disaster count](media/demo.gif)
 
-Same 67 counties, four different questions. Doctor density is binned by quantile rather than
-equal interval — Alachua's 351 doctors per 10k against a statewide median of 118 would otherwise
-flatten every rural county into a single shade.
+Hovering a county — on the map or in the table — dims the rest of the state and pulls up its
+numbers. The toggle asks the same 67 counties four different questions. Doctor density is binned
+by quantile rather than equal interval: Alachua's 351 doctors per 10k against a statewide median
+of 118 would otherwise flatten every rural county into a single shade.
 
 ## How I Used Snowflake
 

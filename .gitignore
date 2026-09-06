@@ -7,3 +7,4 @@ venv/
 .DS_Store
 output/
 media/_frames/
+media/_rec/
